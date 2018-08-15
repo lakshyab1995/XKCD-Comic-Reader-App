@@ -23,6 +23,8 @@ public class ComicListAdapter extends RecyclerView.Adapter<ComicListAdapter.View
     private static final String TAG = ComicListAdapter.class.getSimpleName();
     private List<ComicModel> mComicModels;
     private Context mContext;
+    private int mCount;
+    private boolean mIsAdTrigger = false;
 
     public ComicListAdapter(Context context, List<ComicModel> comicModels){
         mContext = context;
@@ -48,8 +50,16 @@ public class ComicListAdapter extends RecyclerView.Adapter<ComicListAdapter.View
             @Override
             public void onClick(View view) {
                 Log.d(TAG,"Comic List Item Clicked");
+                mCount++;
+                if(mCount % 5 == 0){
+                    mIsAdTrigger = true;
+                }
+                else {
+                    mIsAdTrigger = false;
+                }
                 Intent intent = new Intent(mContext, ComicActivity.class);
                 intent.putExtra("ComicObject", mComicModels.get(0));
+                intent.putExtra("isAdTriggered", mIsAdTrigger);
                 mContext.startActivity(intent);
             }
         });

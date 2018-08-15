@@ -29,6 +29,10 @@ dependencies {
     // Glide v4 uses this new annotation processor -- see https://bumptech.github.io/glide/doc/generatedapi.html
     annotationProcessor 'com.github.bumptech.glide:compiler:4.7.1'
     testImplementation 'junit:junit:4.12'
+    testImplementation 'org.robolectric:robolectric:3.3.2'
+    testImplementation 'org.robolectric:robolectric-utils:3.3.2'
+    testImplementation 'org.robolectric:robolectric-annotations:3.3.2'
+    testImplementation 'org.mockito:mockito-core:2.7.22'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }

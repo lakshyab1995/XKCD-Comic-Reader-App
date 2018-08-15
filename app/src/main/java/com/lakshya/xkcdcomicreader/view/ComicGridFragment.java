@@ -14,9 +14,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.Toast;
 
+import com.adsnative.ads.ANAdPositions;
+import com.adsnative.ads.ANAdViewBinder;
+import com.adsnative.ads.ANRecyclerAdapter;
 import com.lakshya.xkcdcomicreader.ComicModel;
 import com.lakshya.xkcdcomicreader.FetchComicsTask;
+import com.lakshya.xkcdcomicreader.NetworkUtils;
 import com.lakshya.xkcdcomicreader.R;
 import com.lakshya.xkcdcomicreader.adapter.ComicGridAdapter;
 
@@ -27,6 +32,7 @@ public class ComicGridFragment extends Fragment {
 
     private static final String TAG = ComicGridFragment.class.getSimpleName();
     private static final String COMIC_GET_URL = "https://xkcd.com/info.0.json";
+    private static final String AD_UNIT_ID = "2Pwo1otj1C5T8y6Uuz9v-xbY1aB09x8rWKvsJ-HI";
     private RecyclerView mComicGrid;
     private GridLayoutManager mGridLayoutManager;
     private boolean isScrolling;
@@ -34,17 +40,18 @@ public class ComicGridFragment extends Fragment {
     private ComicModel mComicModel;
     private List<ComicModel> mComicModelList = new ArrayList<>();
     private ComicGridAdapter mComicGridAdapter;
+    private ANRecyclerAdapter mANRecyclerAdapter;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_comic, container, false);
         mComicGrid = rootView.findViewById(R.id.comicList);
-        mGridLayoutManager = new GridLayoutManager(getContext(),3);
+        mGridLayoutManager = new GridLayoutManager(getContext(),2);
         mComicGrid.setHasFixedSize(true);
         mComicGrid.setLayoutManager(mGridLayoutManager);
         mComicGrid.setItemAnimator(new DefaultItemAnimator());
-        mComicGrid.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.HORIZONTAL));
+        //mComicGrid.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.HORIZONTAL));
         mComicGrid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
@@ -62,12 +69,22 @@ public class ComicGridFragment extends Fragment {
                 scrollOutItems = mGridLayoutManager.findFirstVisibleItemPosition();
                 if(isScrolling && (currentItems + scrollOutItems == totalItems)){
                     isScrolling = false;
-                    fetchData();
+                    if(NetworkUtils.isNetworkAvailable(getContext())){
+                        fetchData();
+                    }
+                    else {
+                        Toast.makeText(getContext(), NetworkUtils.ERROR_STATUS, Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });
         //Fetching Comics
-        new FetchComicsGrid().execute(COMIC_GET_URL);
+        if(NetworkUtils.isNetworkAvailable(getContext())){
+            new FetchComicsGrid().execute(COMIC_GET_URL);
+        }
+        else {
+            Toast.makeText(getContext(), NetworkUtils.ERROR_STATUS, Toast.LENGTH_SHORT).show();
+        }
         Log.d(TAG,"Grid Fragment created");
         return rootView;
     }
@@ -76,10 +93,12 @@ public class ComicGridFragment extends Fragment {
         new Handler().post(new Runnable() {
             @Override
             public void run() {
-                for(int i = 0; i < 10; i++){
-                    mComicModelList.add(mComicModel);
+                if(mComicModel != null){
+                    for(int i = 0; i < 10; i++){
+                        mComicModelList.add(mComicModel);
+                    }
+                    mComicGridAdapter.notifyDataSetChanged();
                 }
-                mComicGridAdapter.notifyDataSetChanged();
             }
         });
     }
@@ -93,8 +112,34 @@ public class ComicGridFragment extends Fragment {
             for(int i = 0; i < 10; i++){
                 mComicModelList.add(mComicModel);
             }
+
+            final ANAdViewBinder anAdViewBinder = new ANAdViewBinder.Builder(R.layout.grid_native_ad_layout)
+                    .bindTitle(R.id.ad_title)
+                    .bindIconImage(R.id.ad_icon)
+                    .bindPromotedBy(R.id.ad_promoted_by)
+                    .build();
+            ANAdPositions.ClientPositions clientPositions = ANAdPositions.clientPositioning();
+            // add fixed positions
+            clientPositions.addFixedPosition(5).addFixedPosition(10);
+            // add repeating position interval
+            clientPositions.enableRepeatingPositions(8);
+
             mComicGridAdapter = new ComicGridAdapter(getContext(), mComicModelList);
-            mComicGrid.setAdapter(mComicGridAdapter);
+            mANRecyclerAdapter = new ANRecyclerAdapter(getContext(), mComicGridAdapter, AD_UNIT_ID, clientPositions);
+            // Register the renderer with the ANRecyclerAdapter
+            mANRecyclerAdapter.registerViewBinder(anAdViewBinder);
+
+            mComicGrid.setAdapter(mANRecyclerAdapter);
+            // Start loading ads
+            mANRecyclerAdapter.loadAds();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(mANRecyclerAdapter != null){
+            mANRecyclerAdapter.loadAds();
         }
     }
 }

@@ -1,5 +1,8 @@
 package com.lakshya.xkcdcomicreader.view;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -13,10 +16,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.Toast;
 
 import com.adsnative.ads.ANAdPositions;
 import com.adsnative.ads.ANAdViewBinder;
 import com.adsnative.ads.ANRecyclerAdapter;
+import com.lakshya.xkcdcomicreader.NetworkUtils;
 import com.lakshya.xkcdcomicreader.adapter.ComicListAdapter;
 import com.lakshya.xkcdcomicreader.ComicModel;
 import com.lakshya.xkcdcomicreader.FetchComicsTask;
@@ -65,13 +70,23 @@ public class ComicListFragment extends Fragment{
                 scrollOutItems = mLinearLayoutManager.findFirstVisibleItemPosition();
                 if(isScrolling && (currentItems + scrollOutItems == totalItems)){
                     isScrolling = false;
-                    fetchData();
+                    if(NetworkUtils.isNetworkAvailable(getContext())){
+                        fetchData();
+                    }
+                    else {
+                        Toast.makeText(getContext(), NetworkUtils.ERROR_STATUS, Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });
 
         //Fetching Comics
-        new FetchComicsList().execute(COMIC_GET_URL);
+        if(NetworkUtils.isNetworkAvailable(getContext())){
+            new FetchComicsList().execute(COMIC_GET_URL);
+        }
+        else {
+            Toast.makeText(getContext(), NetworkUtils.ERROR_STATUS, Toast.LENGTH_SHORT).show();
+        }
         Log.d(TAG,"List Fragment created");
         return rootView;
     }
@@ -83,10 +98,12 @@ public class ComicListFragment extends Fragment{
         new Handler().post(new Runnable() {
             @Override
             public void run() {
-                for(int i = 0; i < 10; i++){
-                    mComicModelList.add(mComicModel);
+                if(mComicModel != null){
+                    for(int i = 0; i < 10; i++){
+                        mComicModelList.add(mComicModel);
+                    }
+                    mComicListAdapter.notifyDataSetChanged();
                 }
-                mComicListAdapter.notifyDataSetChanged();
             }
         });
     }
